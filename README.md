@@ -2,7 +2,8 @@
 
 A beautifully designed Django application to track calories for South Indian cuisine. Keep track of your daily meals, snacks, and beverages while exploring the rich variety of South Indian food.
 
-![Application Screenshot](screenshots/app-preview.png)
+![base](https://github.com/user-attachments/assets/52e464c8-8614-4ffa-81c8-ba8962324f3b)
+
 
 ✨ Features
 
@@ -41,7 +42,7 @@ Installation
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/south-indian-calorie-tracker.git
+git clone https://github.com/kkraddi111/calorie-tracker.git
 cd south-indian-calorie-tracker
 ```
 
@@ -118,14 +119,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 📸 Screenshots
 
- Home Page
-![Home Page](screenshots/home.png)
-
  Add Meal
-![Add Meal](screenshots/add-meal.png)
+ 
+![add-meal](https://github.com/user-attachments/assets/5a1140de-45a2-48ca-8ce2-bbfc43990301)
 
- Food Database
-![Food Database](screenshots/food-database.png)
+
+ Add Food and Food Database
+ 
+![add-food](https://github.com/user-attachments/assets/b6f5fe56-77a1-4798-94eb-5f6c14433ea4)
+
+![add-food-1](https://github.com/user-attachments/assets/d27e1d0a-29b0-494a-b062-9b881ab0afcf)
+
+
 
 ---
 Made with ❤️ for South Indian cuisine enthusiasts
