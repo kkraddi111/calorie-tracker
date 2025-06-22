@@ -1,0 +1,274 @@
+{% extends 'tracker/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<style>
+.food-item {
+    border: 1px solid var(--custom-primary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    position: relative;
+    background: rgba(74, 16, 42, 0.03);
+}
+.remove-food {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--custom-secondary);
+    border-color: var(--custom-secondary);
+}
+.remove-food:hover {
+    background-color: var(--custom-secondary);
+    border-color: var(--custom-secondary);
+    color: white;
+}
+.calories-display {
+    color: var(--custom-secondary);
+    font-weight: bold;
+}
+</style>
+
+{# Store food data as JSON for JavaScript use #}
+<script id="food-choices-data" type="application/json">
+    {{ food_choices|safe }}
+</script>
+<script id="food-categories-data" type="application/json">
+    {{ food_categories|safe }}
+</script>
+
+<script>
+const foodChoices = JSON.parse(document.getElementById('food-choices-data').textContent);
+const foodCategories = JSON.parse(document.getElementById('food-categories-data').textContent);
+let foodItemCount = 1;
+
+function createFoodSelect(index) {
+    let html = `<select class="form-control food-select" name="food_${index}" onchange="updateFoodItem(this)">
+        <option value="">Select a food</option>`;
+    
+    // Add categorized options
+    for (const [category, foods] of Object.entries(foodCategories)) {
+        const categoryTitle = category.replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+            
+        html += `<optgroup label="${categoryTitle}">`;
+        foodChoices.forEach(food => {
+            const foodName = food[1].toLowerCase();
+            if (foods.some(catFood => foodName.includes(catFood.toLowerCase()))) {
+                html += `<option value="${food[0]}">${food[1]}</option>`;
+            }
+        });
+        html += '</optgroup>';
+    }
+    
+    // Add all foods group
+    html += `<optgroup label="All Foods">`;
+    foodChoices.forEach(food => {
+        html += `<option value="${food[0]}">${food[1]}</option>`;
+    });
+    html += '</optgroup></select>';
+    
+    return html;
+}
+
+function updateTotalCalories() {
+    const foodItems = document.querySelectorAll('.food-item');
+    let totalCalories = 0;
+    
+    foodItems.forEach(item => {
+        const foodSelect = item.querySelector('.food-select');
+        const quantityInput = item.querySelector('.quantity-input');
+        const itemCaloriesDisplay = item.querySelector('.item-calories');
+        
+        if (foodSelect.selectedIndex > 0) {
+            const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+            const optionText = selectedOption.text;
+            const caloriesMatch = optionText.match(/\((\d+\.?\d*)\s*calories/);
+            
+            if (caloriesMatch) {
+                const caloriesPerUnit = parseFloat(caloriesMatch[1]);
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const itemCalories = caloriesPerUnit * quantity;
+                totalCalories += itemCalories;
+                itemCaloriesDisplay.textContent = `${itemCalories.toFixed(2)} calories`;
+            }
+        }
+    });
+    
+    document.getElementById('total_calories_display').textContent = 
+        `Total Meal Calories: ${totalCalories.toFixed(2)}`;
+}
+
+function addFoodItem() {
+    foodItemCount++;
+    const template = `
+        <div class="food-item" id="food-item-${foodItemCount}">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-food" 
+                    onclick="removeFoodItem(this)">✕</button>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Food Item</label>
+                    ${createFoodSelect(foodItemCount)}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" class="form-control quantity-input" 
+                           name="quantity_${foodItemCount}" 
+                           step="0.1" min="0" oninput="updateFoodItem(this)">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Calories</label>
+                    <div class="item-calories calories-display pt-2">0 calories</div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('food-items').insertAdjacentHTML('beforeend', template);
+}
+
+function removeFoodItem(btn) {
+    btn.closest('.food-item').remove();
+    updateTotalCalories();
+}
+
+function updateFoodItem(element) {
+    const foodItem = element.closest('.food-item');
+    const foodSelect = foodItem.querySelector('.food-select');
+    const quantityInput = foodItem.querySelector('.quantity-input');
+    const itemCaloriesDisplay = foodItem.querySelector('.item-calories');
+    
+    if (foodSelect.selectedIndex > 0) {
+        const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+        const optionText = selectedOption.text;
+        const caloriesMatch = optionText.match(/\((\d+\.?\d*)\s*calories/);
+        
+        if (caloriesMatch) {
+            const caloriesPerUnit = parseFloat(caloriesMatch[1]);
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const itemCalories = caloriesPerUnit * quantity;
+            itemCaloriesDisplay.textContent = `${itemCalories.toFixed(2)} calories`;
+        }
+    }
+    updateTotalCalories();
+}
+</script>
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title mb-4" style="color: var(--custom-primary);">
+                    {% if is_update %}Edit{% else %}Add New{% endif %} Meal Entry
+                </h2>
+                <p class="text-muted mb-4">Track what you ate by adding food items and their quantities.</p>
+                
+                <div class="card mb-4" style="background: linear-gradient(135deg, var(--custom-primary) 0%, var(--custom-primary-hover) 100%); color: white;">
+                    <div class="card-body">
+                        <div id="total_calories_display" class="h4 mb-0">Total Meal Calories: 0</div>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.meal_type.label }}</label>
+                        {{ form.meal_type|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.date.label }}</label>
+                        {{ form.date|add_class:"form-control" }}
+                    </div>
+                    
+                    <div id="food-items">
+                        {% if is_update %}
+                            {% for item in existing_items %}
+                            <div class="food-item" id="food-item-{{ forloop.counter }}">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-food" 
+                                        onclick="removeFoodItem(this)">✕</button>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Food Item</label>
+                                        <select class="form-control food-select" name="food_{{ forloop.counter }}" 
+                                                onchange="updateFoodItem(this)">
+                                            <option value="">Select a food</option>
+                                        </select>
+                                        <script>
+                                            document.addEventListener('DOMContentLoaded', function() {
+                                                const select = document.querySelector('#food-item-{{ forloop.counter }} .food-select');
+                                                select.innerHTML = createFoodSelect({{ forloop.counter }});
+                                                select.value = '{{ item.food.id }}';
+                                                updateFoodItem(select);
+                                            });
+                                        </script>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantity</label>
+                                        <input type="number" class="form-control quantity-input"
+                                               name="quantity_{{ forloop.counter }}" step="0.1" min="0"
+                                               value="{{ item.quantity }}"
+                                               oninput="updateFoodItem(this)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Calories</label>
+                                        <div class="item-calories calories-display pt-2">0 calories</div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    foodItemCount = {{ existing_items|length }};
+                                    updateTotalCalories();
+                                });
+                            </script>
+                        {% else %}
+                            <div class="food-item" id="food-item-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-food" 
+                                        onclick="removeFoodItem(this)">✕</button>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Food Item</label>
+                                        <select class="form-control food-select" name="food_1" 
+                                                onchange="updateFoodItem(this)">
+                                            <option value="">Select a food</option>
+                                        </select>
+                                        <script>
+                                            document.addEventListener('DOMContentLoaded', function() {
+                                                const select = document.querySelector('#food-item-1 .food-select');
+                                                select.innerHTML = createFoodSelect(1);
+                                            });
+                                        </script>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantity</label>
+                                        <input type="number" class="form-control quantity-input"
+                                               name="quantity_1" step="0.1" min="0"
+                                               oninput="updateFoodItem(this)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Calories</label>
+                                        <div class="item-calories calories-display pt-2">0 calories</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3 mt-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="addFoodItem()" 
+                                style="color: var(--custom-secondary); border-color: var(--custom-secondary);">
+                            <i class="bi bi-plus-circle"></i> Add Another Food Item
+                        </button>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> {% if is_update %}Update{% else %}Save{% endif %} Meal
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

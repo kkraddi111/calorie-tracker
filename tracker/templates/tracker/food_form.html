@@ -1,0 +1,138 @@
+{% extends 'tracker/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<script>
+function updatePreview() {
+    const nameInput = document.getElementById('id_name');
+    const caloriesInput = document.getElementById('id_calories_per_unit');
+    const unitSelect = document.getElementById('id_unit');
+    const previewDiv = document.getElementById('food_preview');
+    
+    const name = nameInput.value || 'Food Name';
+    const calories = caloriesInput.value || '0';
+    const unit = unitSelect.options[unitSelect.selectedIndex].text;
+    
+    previewDiv.innerHTML = `
+<div class="card" style="background: linear-gradient(135deg, var(--custom-primary) 0%, var(--custom-primary-hover) 100%); color: white;">
+            <div class="card-body">
+                <h5 class="card-title">Preview</h5>
+                <p class="card-text">
+                    <span class="h4">${name}</span><br>
+                    <span class="text-muted">${calories} calories per ${unit}</span>
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updatePreview();
+});
+</script>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Add New Food</h2>
+                <p class="text-muted mb-4">Add a new food item to your tracker. Fill in the details below to help track your calories accurately.</p>
+                
+                <div class="row">
+                    <div class="col-md-7">
+                        <form method="post">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field.errors }}
+                                {{ field|add_class:"form-control"|attr:"onchange:updatePreview()" }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.name == 'calories_per_unit' %}
+                                <div class="form-text">Common examples:
+                                    <ul class="mt-1">
+                                        <li>Apple: ~95 calories per piece</li>
+                                        <li>Rice: ~130 calories per 100 grams</li>
+                                        <li>Milk: ~103 calories per cup</li>
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Add Food</button>
+                        </form>
+                    </div>
+                    <div class="col-md-5">
+                        <div id="food_preview" class="mb-3"></div>
+                        <div class="card" style="background: linear-gradient(135deg, var(--custom-secondary) 0%, var(--custom-secondary-hover) 100%); color: white;">
+                            <div class="card-body">
+                                <h5 class="card-title">Tips</h5>
+                                <ul class="mb-0">
+                                    <li>Choose the most common unit you use for this food</li>
+                                    <li>For packaged foods, check the nutrition label</li>
+                                    <li>Consider using standard measurements (e.g., cups, tablespoons)</li>
+                                </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Food Database</h3>
+                <div class="accordion" id="foodAccordion">
+                    {% for category, foods in categorized_foods.items %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" 
+                                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                    aria-controls="collapse{{ forloop.counter }}">
+                                {{ category }} ({{ foods|length }})
+                            </button>
+                        </h2>
+                        <div id="collapse{{ forloop.counter }}" 
+                             class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ forloop.counter }}" 
+                             data-bs-parent="#foodAccordion">
+                            <div class="accordion-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Food Name</th>
+                                                <th>Calories</th>
+                                                <th>Serving Size</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for food in foods %}
+                                            <tr>
+                                    <td class="fw-bold">{{ food.name }}</td>
+                                    <td class="text-primary">{{ food.calories_per_unit }}</td>
+                                    <td class="text-secondary">per {{ food.get_unit_display }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted">No foods added yet.</p>
+                    {% endfor %}
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

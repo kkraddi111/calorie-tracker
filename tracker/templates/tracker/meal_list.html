@@ -1,0 +1,130 @@
+{% extends 'tracker/base.html' %}
+
+{% block content %}
+<style>
+.card-stats {
+    background: linear-gradient(135deg, var(--custom-primary) 0%, var(--custom-primary-hover) 100%);
+    color: white;
+}
+.badge-meal-breakfast {
+    background-color: var(--custom-primary) !important;
+}
+.badge-meal-lunch {
+    background-color: var(--custom-secondary) !important;
+}
+.badge-meal-dinner {
+    background: linear-gradient(135deg, var(--custom-primary) 30%, var(--custom-secondary) 100%);
+}
+.badge-meal-snack {
+    background-color: #6c757d !important;
+}
+.btn-action-primary {
+    color: var(--custom-primary);
+    border-color: var(--custom-primary);
+}
+.btn-action-primary:hover {
+    background-color: var(--custom-primary);
+    border-color: var(--custom-primary);
+    color: white;
+}
+.btn-action-secondary {
+    color: var(--custom-secondary);
+    border-color: var(--custom-secondary);
+}
+.btn-action-secondary:hover {
+    background-color: var(--custom-secondary);
+    border-color: var(--custom-secondary);
+    color: white;
+}
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Your Meal Entries</h2>
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-3 mb-3">
+                <div class="card card-stats">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Calories Today</h5>
+                        <h3>{{ total_calories }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="accordion" id="mealsAccordion">
+            {% for meal in meals %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ meal.id }}">
+                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                            data-bs-toggle="collapse" data-bs-target="#collapse{{ meal.id }}"
+                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                            aria-controls="collapse{{ meal.id }}">
+                        <div class="d-flex justify-content-between w-100 align-items-center pe-3">
+                            <div>
+                                <span class="badge badge-meal-{{ meal.meal_type }} me-2">
+                                    {{ meal.get_meal_type_display }}
+                                </span>
+                                {{ meal.date }} - Total: {{ meal.total_calories }} calories
+                            </div>
+                            <div class="actions">
+                                <a href="{% url 'meal_edit' meal.id %}" class="btn btn-sm btn-action-primary me-2">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <a href="{% url 'meal_delete' meal.id %}" class="btn btn-sm btn-action-secondary">
+                                    <i class="bi bi-trash"></i> Delete
+                                </a>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse{{ meal.id }}" 
+                     class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                     aria-labelledby="heading{{ meal.id }}"
+                     data-bs-parent="#mealsAccordion">
+                    <div class="accordion-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Food Item</th>
+                                        <th>Quantity</th>
+                                        <th>Calories</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in meal.mealitem_set.all %}
+                                    <tr>
+                                        <td>{{ item.food.name }}</td>
+                                        <td>{{ item.quantity }} {{ item.food.get_unit_display }}</td>
+                                        <td>{{ item.total_calories }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr class="table-light">
+                                        <td colspan="2" class="text-end fw-bold">Total Calories:</td>
+                                        <td class="fw-bold">{{ meal.total_calories }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">
+                No meals recorded yet. Start by adding a meal!
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-4">
+            <a href="{% url 'meal_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Meal
+            </a>
+            <a href="{% url 'food_add' %}" class="btn btn-outline-primary ms-2">
+                <i class="bi bi-plus-circle"></i> Add New Food
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
